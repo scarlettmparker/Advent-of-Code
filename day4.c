@@ -1,7 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
-
 
 // example input (not real)
 const char input[] = "QWERTYXMASZXMASVBNMASWXYZMASXMASYXMASMASZXMASABCXMASXMASXMASZMASQWERTYXMASZXMASVBNMASWXYZMASXMASYXMASMASZXMASABCXMASXMASXMASZMAS";
@@ -57,10 +55,6 @@ int main()
     }
   }
   
-  clock_t end = clock();
-  double time_spent = (double)(end - begin) * 1000 / CLOCKS_PER_SEC;
-  
   printf("Part 1 Total: %d\n", total_p1);
   printf("Part 2 Total: %d\n", total_p2);
-  printf("Execution time: %fms\n", time_spent);
 }
