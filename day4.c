@@ -8,7 +8,6 @@ const char input[] = "QWERTYXMASZXMASVBNMASWXYZMASXMASYXMASMASZXMASABCXMASXMASXM
 
 int main()
 {
-  clock_t begin = clock();
   int len = strlen(input);
   int total_p1 = 0;
   int total_p2 = 0;
