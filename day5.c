@@ -69,42 +69,74 @@ int* compute_in_dg(struct Graph* graph){
 }
 
 /**
- * Performs topological sort on the graph using Kahn's algorithm.
- * It orders vertices so that each directed edge u -> v, u comes before v.
+ * Checks if there is an edge between two vertices in the graph.
+ *
+ * @param graph Pointer to the graph.
+ * @param src Source vertex.
+ * @param dest Destination vertex.
+ * @return 1 if there is an edge from src to dest, 0 otherwise.
+ */
+int has_edge(struct Graph* graph, int src, int dest){
+    struct Node* temp = graph->adj_pages[src];
+    while(temp){
+        if(temp->vertex == dest){
+            return 1;
+        }
+        temp = temp->next;
+    }
+    return 0;
+}
+
+/**
+ * Helper function to swap the values of two integers.
+ *
+ * @param a Pointer to the first integer.
+ * @param b Pointer to the second integer.
+ */
+void swap(int* a, int* b){
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+/**
+ * Partitions the array around a pivot element for the quicksort algorithm.
  *
  * @param graph Pointer to the graph.
  * @param page List of page numbers to store the sorted vertices (page numbers).
- * @param page_size Number of verticies in the page number list.
+ * @param low Starting idx of the section to be partitioned.
+ * @param high Ending idx of the section to be partitioned.
+ * @return Idx of the pivot element after partitioning.
  */
-void topological_sort(struct Graph* graph, int* page, int page_size){
-  int* in_dg = compute_in_dg(graph);
-  int* queue = malloc(graph->num_vertices * sizeof(int));
-  int front = 0, back = 0;
-  
-  for (int i = 0; i < graph->num_vertices; i++){
-    if (in_dg[i] == 0){
-      queue[back++] = i;
+int partition(struct Graph* graph, int* page, int low, int high){
+    int pivot = page[high];
+    int i = low - 1;
+    for(int j = low; j < high; j++){
+        if(!has_edge(graph, page[j], pivot)){
+            i++;
+            swap(&page[i], &page[j]);
+        }
     }
-  }
-  
-  int processed = 0;
-  while (front < back){
-    int current = queue[front++];
-    processed++;
-    
-    struct Node* temp = graph->adj_pages[current];
-    while (temp){
-      in_dg[temp->vertex]--;
-      if (in_dg[temp->vertex] == 0){
-        queue[back++] = temp->vertex;
-      }
-      temp = temp->next;
-    }
-  }
-  
-  free(in_dg);
-  free(queue);
+    swap(&page[i + 1], &page[high]);
+    return i + 1;
 }
+
+/**
+ * Perform quicksort on array of vertices.
+ *
+ * @param graph Pointer to the graph.
+ * @param page List of page numbers to store the sorted vertices (page numbers).
+ * @param low Starting idx of the section to be sorted.
+ * @param high Ending idx of the section to be sorted.
+ */
+void q_sort(struct Graph* graph, int* page, int low, int high){
+    if(low < high){
+        int pi = partition(graph, page, low, high);
+        q_sort(graph, page, low, pi - 1);
+        q_sort(graph, page, pi + 1, high);
+    }
+}
+
 
 /**
  * Checks if page order is valid by checking if the order is allowed
@@ -125,49 +157,50 @@ int page_valid(struct Graph* graph, int* page, int page_size){
   for (int i = 0; i < page_size; i++){
     position[page[i]] = i;
   }
-   
-      
-  int middle_index = page_size / 2;
-  int middle_value = page[middle_index];
   
   for (int i = 0; i < graph->num_vertices; i++){
     struct Node* temp = graph->adj_pages[i];
     while (temp){
       int a = i, b = temp->vertex;
       if (position[a] != -1 && position[b] != -1 && position[a] > position[b]){
-        /**
-         * PART 1
-         */ 
-         
-        free(position);
-        return 0;
-        
+
         /**
          * PART 2
          */
-         
-        /*
-        topological_sort(graph, page, page_size);
+        q_sort(graph, page, 0, page_size - 1);
+        int middle_index = page_size / 2;
+        int middle_value = page[middle_index];
+        
         free(position);
         return middle_value;
-        */
         
+        /**
+         * PART 1
+         */
+
+        /* 
+        free(position);
+        return 0;
+        */
       }
       temp = temp->next;
     }
   }
-  
+
+  /*
+   * PART 2
+   */
+  return 0;
+
   /**
    * PART 1
    */
 
+  /*
+  int middle_index = page_size / 2;
+  int middle_value = page[middle_index];
   return middle_value;
-  
-  /**
-   * PART 2
-   */
-   
-  return 0;
+  */
 }
 
 /**
@@ -262,9 +295,6 @@ int main()
   /**
    * ACTUAL LOGIC STUFF
    */
-  int total_p1 = 0;
-  int total_p2 = 0;
-    
   struct Graph* graph = create_graph(VERTICES_RANGE);
   for (int i = 0; i < rules_c; i++){
     add_edge(graph, rules[i][0], rules[i][1]);
@@ -272,7 +302,7 @@ int main()
     
   int valid_c = count_valid(graph, pages, page_c, page_lengths);
   printf("Total: %d\n", valid_c);
-    
+
   // freeing memory
   for (int i = 0; i < rules_c; i++){
     free(rules[i]);
