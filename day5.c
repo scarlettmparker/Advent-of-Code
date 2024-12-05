@@ -4,6 +4,7 @@
 
 // example input
 const char * input = "47|53\n97|13\n97|61\n97|47\n75|29\n97|53\n61|29\n47|13\n75|47\n97|75\n47|61\n75|61\n47|29\n75|13\n53|13\n\n75,47,61,53,29\n97,61,53,29,13";
+
 #define VERTICES_RANGE 100
 
 struct Node{
@@ -58,11 +59,10 @@ void add_edge(struct Graph* graph, int src, int dest){
  */
 int* compute_in_dg(struct Graph* graph){
   int* in_dg = calloc(graph->num_vertices, sizeof(int));
+  if (!in_dg) return NULL;
   for (int i = 0; i < graph->num_vertices; i++){
-    struct Node* temp = graph->adj_pages[i];
-    while (temp){
+    for (struct Node* temp = graph->adj_pages[i]; temp; temp = temp->next){
       in_dg[temp->vertex]++;
-      temp = temp->next;
     }
   }
   return in_dg;
@@ -77,14 +77,12 @@ int* compute_in_dg(struct Graph* graph){
  * @return 1 if there is an edge from src to dest, 0 otherwise.
  */
 int has_edge(struct Graph* graph, int src, int dest){
-    struct Node* temp = graph->adj_pages[src];
-    while(temp){
-        if(temp->vertex == dest){
-            return 1;
-        }
-        temp = temp->next;
+  for (struct Node* temp = graph->adj_pages[src]; temp; temp = temp->next){
+    if(temp->vertex == dest){
+      return 1;
     }
-    return 0;
+  }
+  return 0;
 }
 
 /**
@@ -109,34 +107,39 @@ void swap(int* a, int* b){
  * @return Idx of the pivot element after partitioning.
  */
 int partition(struct Graph* graph, int* page, int low, int high){
-    int pivot = page[high];
-    int i = low - 1;
-    for(int j = low; j < high; j++){
-        if(!has_edge(graph, page[j], pivot)){
-            i++;
-            swap(&page[i], &page[j]);
-        }
+  int pivot = page[high];
+  int i = low;
+  for(int j = low; j < high; j++){
+    if(!has_edge(graph, page[j], pivot)){
+      swap(&page[i], &page[j]);
+      i++;
     }
-    swap(&page[i + 1], &page[high]);
-    return i + 1;
+  }
+  swap(&page[i], &page[high]);
+  return i;
 }
 
 /**
- * Perform quicksort on array of vertices.
+ * Selects the k-th smallest element in an array using quick select.
  *
+ * @param arr Array of integers to select the k-th smallest element from.
+ * @param left Starting idx of the array (or subarray) to be considered.
+ * @param right Ending idx of the array (or subarray) to be considered.
+ * @param k 0-based idx of the element to select.
  * @param graph Pointer to the graph.
- * @param page List of page numbers to store the sorted vertices (page numbers).
- * @param low Starting idx of the section to be sorted.
- * @param high Ending idx of the section to be sorted.
  */
-void q_sort(struct Graph* graph, int* page, int low, int high){
-    if(low < high){
-        int pi = partition(graph, page, low, high);
-        q_sort(graph, page, low, pi - 1);
-        q_sort(graph, page, pi + 1, high);
-    }
+int q_select(int* arr, int left, int right, int k, struct Graph* graph) {
+  while (left <= right) {
+    int pivotIdx = partition(graph, arr, left, right);
+    if (k == pivotIdx)
+      return arr[k];
+    else if (k < pivotIdx)
+      right = pivotIdx - 1;
+    else
+      left = pivotIdx + 1;
+  }
+  return -1;
 }
-
 
 /**
  * Checks if page order is valid by checking if the order is allowed
@@ -163,13 +166,12 @@ int page_valid(struct Graph* graph, int* page, int page_size){
     while (temp){
       int a = i, b = temp->vertex;
       if (position[a] != -1 && position[b] != -1 && position[a] > position[b]){
-
         /**
          * PART 2
          */
-        q_sort(graph, page, 0, page_size - 1);
+
         int middle_index = page_size / 2;
-        int middle_value = page[middle_index];
+        int middle_value = q_select(page, 0, page_size - 1, middle_index, graph);
         
         free(position);
         return middle_value;
@@ -190,6 +192,7 @@ int page_valid(struct Graph* graph, int* page, int page_size){
   /*
    * PART 2
    */
+
   return 0;
 
   /**
@@ -226,10 +229,7 @@ int count_valid(struct Graph* graph, int** pages, int num_pages, int* page_sizes
 
 int main()
 {
-  /**
-   * DATA PREPROCESSING
-   */
-
+  /* DATA PRE-PROCESSING */
   char *input_copy = strdup(input);
   char *split_pos = strstr(input_copy, "\n\n");
   
@@ -292,9 +292,6 @@ int main()
 
   free(input_copy);
 
-  /**
-   * ACTUAL LOGIC STUFF
-   */
   struct Graph* graph = create_graph(VERTICES_RANGE);
   for (int i = 0; i < rules_c; i++){
     add_edge(graph, rules[i][0], rules[i][1]);
